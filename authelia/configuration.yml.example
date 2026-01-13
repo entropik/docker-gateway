@@ -1,0 +1,53 @@
+# /volume1/docker/gateway/authelia/configuration.yml
+server:
+  address: 'tcp://0.0.0.0:9091'
+
+log:
+  level: info
+
+# Les secrets (jwt_secret, session.secret, storage.encryption_key) sont chargés
+# automatiquement depuis les fichiers via les variables d'environnement :
+# - AUTHELIA_JWT_SECRET_FILE=/config/secrets/jwt_secret.txt
+# - AUTHELIA_SESSION_SECRET_FILE=/config/secrets/session_secret.txt
+# - AUTHELIA_STORAGE_ENCRYPTION_KEY_FILE=/config/secrets/storage_encryption_key.txt
+
+default_redirection_url: 'https://auth.example.com'
+
+totp:
+  issuer: example.com
+  period: 30
+  skew: 2
+
+authentication_backend:
+  file:
+    path: /config/users.yml
+    password:
+      algorithm: argon2id
+      iterations: 3
+
+access_control:
+  default_policy: deny
+  rules:
+    - domain: photos.example.com
+      policy: bypass
+    - domain: '*.example.com'
+      policy: two_factor
+
+session:
+  name: authelia_session
+  expiration: 86400
+  inactivity: 3600
+  domain: example.com
+
+regulation:
+  max_retries: 3
+  find_time: 120
+  ban_time: 300
+
+storage:
+  local:
+    path: /config/db.sqlite3
+
+notifier:
+  filesystem:
+    filename: /config/notification.txt

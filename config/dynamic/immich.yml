@@ -1,0 +1,17 @@
+http:
+  routers:
+    immich:
+      rule: "Host(`photos.ooblik.com`)"
+      entryPoints:
+        - websecure
+      service: immich
+      tls:
+        certResolver: letsencrypt
+      middlewares:
+        - crowdsec
+
+  services:
+    immich:
+      loadBalancer:
+        servers:
+          - url: "http://192.168.1.120:2283"

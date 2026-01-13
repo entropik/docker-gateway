@@ -1,0 +1,145 @@
+# =============================================================================
+# Docker Gateway - .gitignore
+# =============================================================================
+# Ce fichier protège les secrets et données sensibles du repo public
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Secrets et Configurations Sensibles
+# -----------------------------------------------------------------------------
+
+# Fichier principal des secrets
+.env
+.env.local
+.env.*.local
+
+# Secrets Authelia
+authelia/secrets/
+authelia/users.yml
+authelia/db.sqlite3
+authelia/notification.txt
+
+# Configuration Heimdall avec secrets
+heimdall/www/.env
+heimdall/www/app.sqlite
+
+# Credentials CrowdSec
+crowdsec/config/local_api_credentials.yaml
+crowdsec/config/online_api_credentials.yaml
+
+# -----------------------------------------------------------------------------
+# Certificats et Clés Privées
+# -----------------------------------------------------------------------------
+
+# Let's Encrypt (contient clés privées)
+letsencrypt/
+
+# Certificats SSL Heimdall
+heimdall/keys/*.key
+heimdall/keys/*.pem
+heimdall/nginx/dhparams.pem
+
+# Certificats génériques
+*.key
+*.pem
+*.p12
+*.pfx
+
+# -----------------------------------------------------------------------------
+# Bases de Données (contiennent données sensibles)
+# -----------------------------------------------------------------------------
+
+# Bases de données des services
+*.sqlite
+*.sqlite3
+*.db
+
+# Spécifiquement
+crowdsec/data/*.db
+diun/diun.db
+dockge/dockge.db
+
+# -----------------------------------------------------------------------------
+# Données Runtime et Logs
+# -----------------------------------------------------------------------------
+
+# Logs Traefik
+logs/
+*.log
+
+# Données CrowdSec
+crowdsec/data/
+crowdsec/config/hub/.index.json
+
+# Backup Duplicati
+duplicati/
+
+# Données Diun
+diun/
+
+# Configuration Dockge
+dockge/
+
+# -----------------------------------------------------------------------------
+# Fichiers Système et IDE
+# -----------------------------------------------------------------------------
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# Git
+.gitattributes
+
+# -----------------------------------------------------------------------------
+# Fichiers Temporaires et Backups
+# -----------------------------------------------------------------------------
+
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+tmpclaude-*
+NDH6SA~M
+
+# -----------------------------------------------------------------------------
+# Exceptions : Fichiers à Versionner
+# -----------------------------------------------------------------------------
+
+# Templates et exemples (sans secrets)
+!.env.example
+!authelia/configuration.yml.example
+!authelia/users.yml.example
+!heimdall/www/.env.example
+
+# Structure de dossiers
+!authelia/secrets/.gitkeep
+!letsencrypt/.gitkeep
+!logs/.gitkeep
+!crowdsec/data/.gitkeep
+!diun/.gitkeep
+!dockge/.gitkeep
+!duplicati/.gitkeep
+
+# Configuration Traefik (pas de secrets)
+!config/
+!config/**/*.yml
+
+# Hub CrowdSec (configuration publique)
+!crowdsec/config/hub/
+!crowdsec/config/*.yaml
+crowdsec/config/local_api_credentials.yaml
+crowdsec/config/online_api_credentials.yaml
+
+# =============================================================================
+# FIN
+# =============================================================================

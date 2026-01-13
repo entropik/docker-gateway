@@ -1,0 +1,47 @@
+# /volume1/docker/gateway/authelia/configuration.yml
+server:
+  address: 'tcp://0.0.0.0:9091'
+
+log:
+  level: info
+
+default_redirection_url: 'https://auth.ooblik.com'
+
+totp:
+  issuer: ooblik.com
+  period: 30
+  skew: 2
+
+authentication_backend:
+  file:
+    path: /config/users.yml
+    password:
+      algorithm: argon2id
+      iterations: 3
+
+access_control:
+  default_policy: deny
+  rules:
+    - domain: photos.ooblik.com
+      policy: bypass
+    - domain: '*.ooblik.com'
+      policy: two_factor
+
+session:
+  name: authelia_session
+  expiration: 86400
+  inactivity: 3600
+  domain: ooblik.com
+
+regulation:
+  max_retries: 3
+  find_time: 120
+  ban_time: 300
+
+storage:
+  local:
+    path: /config/db.sqlite3
+
+notifier:
+  filesystem:
+    filename: /config/notification.txt

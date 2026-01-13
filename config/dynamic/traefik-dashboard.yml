@@ -1,0 +1,23 @@
+http:
+  routers:
+    traefik-dashboard:
+      rule: "Host(`trafik.ooblik.com`)"
+      entryPoints:
+        - websecure
+      service: api@internal
+      tls:
+        certResolver: letsencrypt
+      middlewares:
+        - authelia
+        - crowdsec
+
+  middlewares:
+    authelia:
+      forwardAuth:
+        address: "http://authelia:9091/api/verify?rd=https://auth.ooblik.com"
+        trustForwardHeader: true
+        authResponseHeaders:
+          - Remote-User
+          - Remote-Groups
+          - Remote-Name
+          - Remote-Email

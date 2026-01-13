@@ -1,0 +1,162 @@
+version: "3.9"
+
+services:
+  traefik:
+    image: traefik:v3.3
+    container_name: traefik
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ:-Europe/Paris}
+    command:
+      - "--api.dashboard=true"
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.file.directory=/etc/traefik/dynamic"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+      - "--accesslog=true"
+      - "--accesslog.filepath=/var/log/traefik/access.log"
+      - "--log.level=DEBUG"
+    ports:
+      - "8080:80"
+      - "8443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./letsencrypt:/letsencrypt
+      - ./config:/etc/traefik
+      - ./logs:/var/log/traefik
+    networks:
+      - proxy
+
+  authelia:
+    image: authelia/authelia:latest
+    container_name: authelia
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ:-Europe/Paris}
+      # Méthode recommandée Authelia: charger les secrets depuis des fichiers
+      - AUTHELIA_JWT_SECRET_FILE=/config/secrets/jwt_secret.txt
+      - AUTHELIA_SESSION_SECRET_FILE=/config/secrets/session_secret.txt
+      - AUTHELIA_STORAGE_ENCRYPTION_KEY_FILE=/config/secrets/storage_encryption_key.txt
+    volumes:
+      - ./authelia:/config
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.authelia.rule=Host(`auth.${DOMAIN}`)"
+      - "traefik.http.routers.authelia.entrypoints=websecure"
+      - "traefik.http.routers.authelia.tls.certresolver=letsencrypt"
+      - "traefik.http.services.authelia.loadbalancer.server.port=9091"
+      - "traefik.http.middlewares.authelia.forwardauth.address=http://authelia:9091/api/verify?rd=https://auth.${DOMAIN}"
+      - "traefik.http.middlewares.authelia.forwardauth.trustForwardHeader=true"
+      - "traefik.http.middlewares.authelia.forwardauth.authResponseHeaders=Remote-User,Remote-Groups,Remote-Name,Remote-Email"
+    networks:
+      - proxy
+
+  crowdsec:
+    image: crowdsecurity/crowdsec:latest
+    container_name: crowdsec
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ:-Europe/Paris}
+      - COLLECTIONS=crowdsecurity/traefik crowdsecurity/http-cve
+    volumes:
+      - ./crowdsec/config:/etc/crowdsec
+      - ./crowdsec/data:/var/lib/crowdsec/data
+      - ./logs:/var/log/traefik:ro
+    networks:
+      - proxy
+
+  crowdsec-bouncer:
+    image: fbonalair/traefik-crowdsec-bouncer:latest
+    container_name: crowdsec-bouncer
+    restart: unless-stopped
+    environment:
+      - CROWDSEC_BOUNCER_API_KEY=${CROWDSEC_BOUNCER_API_KEY}
+      - CROWDSEC_AGENT_HOST=crowdsec:8080
+    networks:
+      - proxy
+  heimdall:
+    image: lscr.io/linuxserver/heimdall:latest
+    container_name: heimdall
+    restart: unless-stopped
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TZ:-Europe/Paris}
+    volumes:
+      - ./heimdall:/config
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.heimdall.rule=Host(`kalon.${DOMAIN}`)"
+      - "traefik.http.routers.heimdall.entrypoints=websecure"
+      - "traefik.http.routers.heimdall.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.heimdall.middlewares=authelia@file,crowdsec@file"
+      - "traefik.http.services.heimdall.loadbalancer.server.port=80"
+    networks:
+      - proxy
+  dockge:
+    image: louislam/dockge:latest
+    container_name: dockge
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ:-Europe/Paris}
+      - DOCKGE_STACKS_DIR=/opt/stacks
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./dockge:/app/data
+      - /volume1/docker:/opt/stacks
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dockge.rule=Host(`dockge.${DOMAIN}`)"
+      - "traefik.http.routers.dockge.entrypoints=websecure"
+      - "traefik.http.routers.dockge.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.dockge.middlewares=authelia@file,crowdsec@file"
+      - "traefik.http.services.dockge.loadbalancer.server.port=5001"
+    networks:
+      - proxy
+  diun:
+    image: crazymax/diun:latest
+    container_name: diun
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ:-Europe/Paris}
+      - DIUN_WATCH_WORKERS=20
+      - DIUN_WATCH_SCHEDULE=0 */6 * * *
+      - DIUN_PROVIDERS_DOCKER=true
+      - DIUN_PROVIDERS_DOCKER_WATCHBYDEFAULT=true
+    volumes:
+      - ./diun:/data
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - proxy
+  duplicati:
+    image: lscr.io/linuxserver/duplicati:latest
+    container_name: duplicati
+    restart: unless-stopped
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TZ:-Europe/Paris}
+      - SETTINGS_ENCRYPTION_KEY=${DUPLICATI_SETTINGS_ENCRYPTION_KEY}
+      - CLI_ARGS=--webservice-password=${DUPLICATI_WEBSERVICE_PASSWORD}
+    volumes:
+      - ./duplicati:/config
+      - /volume1/docker:/source:ro
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.duplicati.rule=Host(`backup.${DOMAIN}`)"
+      - "traefik.http.routers.duplicati.entrypoints=websecure"
+      - "traefik.http.routers.duplicati.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.duplicati.middlewares=authelia@file,crowdsec@file"
+      - "traefik.http.services.duplicati.loadbalancer.server.port=8200"
+    networks:
+      - proxy
+
+networks:
+  proxy:
+    driver: bridge
