@@ -171,6 +171,8 @@ docker compose restart crowdsec-bouncer
 
 ## 📖 Configuration Avancée
 
+> 💡 **Pour un guide détaillé étape par étape (sans terminal)**, consultez le [TUTORIEL-AJOUTER-SERVICE.md](TUTORIEL-AJOUTER-SERVICE.md)
+
 ### Ajouter un nouveau service protégé
 
 Pour exposer un nouveau service Docker :
@@ -347,6 +349,7 @@ docker exec traefik ping nom-du-service
 
 ## 📚 Documentation
 
+- [TUTORIEL-AJOUTER-SERVICE.md](TUTORIEL-AJOUTER-SERVICE.md) - **Tutoriel : Ajouter un nouveau service** (interface web uniquement, sans terminal)
 - [DEPLOYMENT.md](DEPLOYMENT.md) - Guide de déploiement complet
 - [SECURITY.md](SECURITY.md) - Politique de sécurité et bonnes pratiques
 - [formation-gateway-ooblik.md](formation-gateway-ooblik.md) - Guide de formation détaillé
